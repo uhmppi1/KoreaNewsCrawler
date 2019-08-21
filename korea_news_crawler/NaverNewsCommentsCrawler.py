@@ -160,7 +160,7 @@ class NaverNewsCommentsCrawler(ArticleCrawler):
 
         day_urls = self.make_news_page_url(url)
 
-        day_urls = day_urls[:2]  # for test
+        # day_urls = day_urls[:2]  # for test
 
         print(category_name + " Urls are generated")
         print('day_urls length: ', len(day_urls))
@@ -185,7 +185,7 @@ class NaverNewsCommentsCrawler(ArticleCrawler):
                 post.append(line.a.get('href'))  # 해당되는 page에서 모든 기사들의 URL을 post 리스트에 넣음
             del post_temp
 
-            post = post[:5]  # for test
+            # post = post[:5]  # for test
 
             for content_url in post:  # 기사 URL
                 article_obj = self.crawling_article(content_url, news_date, category_name)
