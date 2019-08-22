@@ -12,7 +12,7 @@ import platform
 import calendar
 import requests
 import re
-from datetime import timedelta, date
+from datetime import timedelta, date, datetime
 import json
 from selenium import webdriver
 from selenium.common.exceptions import *
@@ -28,13 +28,26 @@ class NaverNewsCommentsCrawler(ArticleCrawler):
         self.wd_path = './webdriver/' + self.user_operating_system + '/chromedriver'
         self.webdriver = webdriver.Chrome(self.wd_path)
         self.init_data_directory()
+        self.mode_test = False
 
+    def set_mode_test(self, mode):
+        self.mode_test = mode
 
     def set_date_range(self, start_year, start_month, start_day, end_year, end_month, end_day):
 
         # 입력받은 파라미터가 invalid하다면 date 생성하면서 오류난다. 굳이 아래 지저분한 체크로직은 필요없다.
         self.date['start'] = date(start_year, start_month, start_day)
         self.date['end'] = date(end_year, end_month, end_day)
+
+        assert (self.date['start'] <= self.date['end'])
+
+        print(self.date)
+
+    def set_date_range(self, start_yyyymmdd, end_yyyymmdd):
+
+        # 입력받은 파라미터가 invalid하다면 date 생성하면서 오류난다. 굳이 아래 지저분한 체크로직은 필요없다.
+        self.date['start'] = datetime.strptime(start_yyyymmdd, '%Y%m%d').date()
+        self.date['end'] = datetime.strptime(end_yyyymmdd, '%Y%m%d').date()
 
         assert (self.date['start'] <= self.date['end'])
 
@@ -125,7 +138,8 @@ class NaverNewsCommentsCrawler(ArticleCrawler):
 
         try:
             for i in range(num_comments // 20):
-                self.webdriver.find_element_by_css_selector(".u_cbox_btn_more").click()  # 댓글 더보기 누르는 코드
+                # self.webdriver.find_element_by_css_selector(".u_cbox_btn_more").click()  # 댓글 더보기 누르는 코드
+                self.webdriver.find_element_by_css_selector(".u_cbox_page_more").click()  # 댓글 더보기 누르는 코드
                 sleep(sleep_time)
         except ElementNotVisibleException as e:  # 댓글 페이지 끝
             # print('ElementNotVisibleException')
@@ -144,7 +158,7 @@ class NaverNewsCommentsCrawler(ArticleCrawler):
             hate_comments_raw = dom.find_all('em', {'class': 'u_cbox_cnt_unrecomm'})  # 비공감수
             hate_comments = [hate.text for hate in hate_comments_raw]
         except Exception as e:  # 다른 예외 발생시 확인
-            print('Unknown Exception :', e)
+            # print('Unknown Exception :', e)
             pass
 
         comments_list = list(zip(comments, like_comments, hate_comments))
@@ -170,7 +184,7 @@ class NaverNewsCommentsCrawler(ArticleCrawler):
         article_list = []
         daily_obj = {'date':news_date}
 
-        for URL in day_urls:
+        for i, URL in enumerate(day_urls):
             request = self.get_url_data(URL)
             document = BeautifulSoup(request.content, 'html.parser')
 
@@ -194,6 +208,10 @@ class NaverNewsCommentsCrawler(ArticleCrawler):
                 # 크롤링 대기 시간
                 # sleep(0.01)  # 대기시간이 너무 짧게 설정되어 있다.
                 sleep(0.3)
+
+            if self.mode_test:
+                daily_obj['articles'] = article_list
+                self.save_file(news_date, category_name+'check'+str(i), daily_obj)
 
         daily_obj['articles'] = article_list
         self.save_file(news_date, category_name, daily_obj)
